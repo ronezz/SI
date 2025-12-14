@@ -1,3 +1,4 @@
+# mqtt server
 import paho.mqtt.client as mqtt
 import doubleratchet as dr
 from cryptography.hazmat.primitives.asymmetric import x25519
@@ -35,10 +36,10 @@ def on_message(client, userdata, msg):
         print(f"Message received ({len(parts)} parts)")
         
         if parts[0] == 'start':
-            # Receive public key from Client
+            # Receive public key from Alice
             public_key_bytes = bytes.fromhex(parts[1])
             other_public_key = x25519.X25519PublicKey.from_public_bytes(public_key_bytes)
-            print("Client public key received")
+            print("Alice public key received")
         else:
             if len(parts) == 3:
                 public_key_hex, nonce_hex, ciphertext_hex = parts
@@ -56,7 +57,7 @@ def on_message(client, userdata, msg):
                 key = dr.symmetric_ratchet(derived_key, root_key)
                 plaintext = dr.decrypt(key, nonce, ciphertext)
                 
-                print(f"Bob: {plaintext.decode('utf-8')}")
+                print(f"Alice: {plaintext.decode('utf-8')}")
             else:
                 print(f"Invalid message format: {len(parts)} parts")
                 
@@ -67,7 +68,7 @@ def send_message(client, message):
     global private_key, public_key, message_count
     
     if other_public_key is None:
-        print("Wait to receive client public key first")
+        print("Wait to receive Alice public key first")
         return
     
     try:
@@ -91,7 +92,7 @@ def send_message(client, message):
         
         msg_payload = f"{public_hex}:{nonce_hex}:{ciphertext_hex}"
         client.publish(MQTT_TOPIC_IN, msg_payload)
-        print(f"alice: {message}")
+        print(f"Bob: {message}")
         
         message_count += 1
         
@@ -115,7 +116,7 @@ def main():
         )
         public_hex = public_bytes.hex()
         client.publish(MQTT_TOPIC_IN, f"start:{public_hex}")
-        print("Public key sent to client")
+        print("Public key sent to Alice")
         
         while True:
             message = input("\nEnter message (or 'quit' to exit): ")
