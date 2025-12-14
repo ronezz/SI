@@ -1,3 +1,4 @@
+# mqtt client
 import paho.mqtt.client as mqtt
 import doubleratchet as dr
 from cryptography.hazmat.primitives.asymmetric import x25519
@@ -36,10 +37,10 @@ def on_message(client, userdata, msg):
         
         # First message
         if parts[0] == 'start':
-            # Receive public key from server
+            # Receive public key from Bob
             public_key_bytes = bytes.fromhex(parts[1])
             other_public_key = x25519.X25519PublicKey.from_public_bytes(public_key_bytes)
-            print("Server public key received")
+            print("Bob public key received")
 
         else:
             if len(parts) == 3:
@@ -58,7 +59,7 @@ def on_message(client, userdata, msg):
                 key = dr.symmetric_ratchet(derived_key, root_key)
                 plaintext = dr.decrypt(key, nonce, ciphertext)
                 
-                print(f"alice: {plaintext.decode('utf-8')}")
+                print(f"Bob: {plaintext.decode('utf-8')}")
             else:
                 print(f"Invalid message format: {len(parts)} parts")
                 
@@ -69,7 +70,7 @@ def send_message(client, message):
     global private_key, public_key, message_count
     
     if other_public_key is None:
-        print("Wait to receive server public key first")
+        print("Wait to receive Bob public key first")
         return
     
     try:
@@ -119,7 +120,7 @@ def main():
         )
         public_hex = public_bytes.hex()
         client.publish(MQTT_TOPIC_OUT, f"start:{public_hex}")
-        print("Public key sent to server")
+        print("Public key sent to Bob")
         
         # Bucle principal
         while True:
